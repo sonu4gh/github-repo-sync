@@ -1,0 +1,25 @@
+name: Test Auth
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-auth:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Print Config
+        run: |
+          echo "ORG_NAME=${{ vars.ORG_NAME }}"
+          echo "USERNAME=${{ vars.USERNAME }}"
+          echo "EXCLUDED_REPOS=${{ vars.EXCLUDED_REPOS }}"
+
+      - name: Test GitHub API Auth
+        run: |
+          curl -H "Authorization: token ${{ secrets.MAIN_GITHUB_TOKEN }}" \
+          https://api.github.com/user
+
+      - name: Test Org Access
+        run: |
+          curl -H "Authorization: token ${{ secrets.MAIN_GITHUB_TOKEN }}" \
+          https://api.github.com/orgs/${{ vars.ORG_NAME }}/repos
