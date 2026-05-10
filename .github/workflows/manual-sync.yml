@@ -7,33 +7,28 @@ on:
   workflow_dispatch:
     inputs:
       source_repo:
-        description: "Source repo name inside org"
+        description: "Source repo name from org"
         required: true
+        type: string
 
       target_repo:
-        description: "Target repo name inside target account"
+        description: "Target repo name"
         required: true
+        type: string
 
 jobs:
   sync-repo:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout automation repo
+      - name: Checkout Automation Repo
         uses: actions/checkout@v4
 
       - name: Install jq
         run: sudo apt-get update && sudo apt-get install -y jq
-      
+
       - name: Make script executable
         run: chmod +x scripts/sync_repo.sh
-
-      - name: Print Inputs
-        run: |
-          echo "ORG_NAME=${{ vars.ORG_NAME }}"
-          echo "USERNAME=${{ vars.USERNAME }}"
-          echo "SOURCE_REPO=${{ github.event.inputs.source_repo }}"
-          echo "TARGET_REPO=${{ github.event.inputs.target_repo }}"
 
       - name: Run Repo Sync
         env:
@@ -62,3 +57,4 @@ jobs:
 
             git push
           fi
+
