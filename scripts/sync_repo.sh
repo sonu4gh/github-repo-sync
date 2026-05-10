@@ -17,6 +17,41 @@ echo "Created temp workdir: $WORKDIR"
 
 cd $WORKDIR
 
+echo "========================================"
+echo "Checking target repo existence..."
+echo "========================================"
+
+TARGET_REPO_CHECK=$(curl -s -o /dev/null -w "%{http_code}" \
+  -H "Authorization: token ${GITHUB_TOKEN}" \
+  https://api.github.com/repos/${TARGET_REPO})
+
+if [ "$TARGET_REPO_CHECK" = "404" ]; then
+
+    echo "Target repo does not exist"
+    echo "Creating target repo..."
+
+    TARGET_REPO_NAME=$(basename $TARGET_REPO)
+
+    curl -s -X POST \
+      -H "Authorization: token ${GITHUB_TOKEN}" \
+      -H "Accept: application/vnd.github+json" \
+      https://api.github.com/user/repos \
+      -d "{
+        \"name\":\"${TARGET_REPO_NAME}\",
+        \"private\":false
+      }"
+
+    echo ""
+    echo "Waiting for repo creation..."
+
+    sleep 5
+
+else
+
+    echo "Target repo already exists"
+
+fi
+
 echo "Cloning target repo..."
 
 git clone \
