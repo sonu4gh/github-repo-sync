@@ -11,6 +11,38 @@ echo "Source Repo: $SOURCE_REPO"
 echo "Target Repo: $TARGET_REPO"
 echo "========================================"
 
+SOURCE_REPO_NAME=$(basename $SOURCE_REPO)
+TARGET_REPO_NAME=$(basename $TARGET_REPO)
+
+echo "========================================"
+echo "Checking latest source commit..."
+echo "========================================"
+
+LATEST_SOURCE_SHA=$(git ls-remote \
+  https://x-access-token:${GITHUB_TOKEN}@github.com/${SOURCE_REPO}.git \
+  refs/heads/main | awk '{print $1}')
+
+echo "Latest source SHA: $LATEST_SOURCE_SHA"
+
+LAST_SYNCED=$(jq -r \
+  --arg repo "$SOURCE_REPO_NAME" \
+  --arg target "$TARGET_REPO_NAME" \
+  '.[$repo][$target] // empty' \
+  $GITHUB_WORKSPACE/sync-state/last-synced.json)
+
+echo "Last synced SHA: $LAST_SYNCED"
+
+if [ "$LATEST_SOURCE_SHA" = "$LAST_SYNCED" ]; then
+
+    echo "========================================"
+    echo "Repo already fully synced"
+    echo "Skipping sync"
+    echo "========================================"
+
+    exit 0
+
+fi
+
 WORKDIR=$(mktemp -d)
 
 echo "Created temp workdir: $WORKDIR"
@@ -29,8 +61,6 @@ if [ "$TARGET_REPO_CHECK" = "404" ]; then
 
     echo "Target repo does not exist"
     echo "Creating target repo..."
-
-    TARGET_REPO_NAME=$(basename $TARGET_REPO)
 
     curl -s -X POST \
       -H "Authorization: token ${GITHUB_TOKEN}" \
@@ -72,9 +102,6 @@ git fetch origin || true
 echo "Fetching source..."
 
 git fetch source
-
-SOURCE_REPO_NAME=$(basename $SOURCE_REPO)
-TARGET_REPO_NAME=$(basename $TARGET_REPO)
 
 echo "========================================"
 echo "Updating repo mappings..."
@@ -139,12 +166,6 @@ echo "========================================"
 echo "Finding new commits..."
 echo "========================================"
 
-LAST_SYNCED=$(jq -r \
-  --arg repo "$SOURCE_REPO_NAME" \
-  --arg target "$TARGET_REPO_NAME" \
-  '.[$repo][$target] // empty' \
-  $GITHUB_WORKSPACE/sync-state/last-synced.json)
-
 if [ -z "$LAST_SYNCED" ]; then
 
     echo "No previous sync found"
@@ -154,7 +175,6 @@ if [ -z "$LAST_SYNCED" ]; then
 
 else
 
-    echo "Last synced commit: $LAST_SYNCED"
     echo "Performing incremental sync"
 
     COMMITS=$(git log ${LAST_SYNCED}..source/main --reverse --pretty=format:"%H")
