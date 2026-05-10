@@ -1,5 +1,6 @@
 {
   "sync-test-repo": [
-    "sync-test-repo"
+    "sync-test-repo",
+    "2nd-sync-test-repo"
   ]
 }
