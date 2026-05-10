@@ -85,15 +85,23 @@ done
 
 LAST_COMMIT=$(echo "$COMMITS" | tail -n 1)
 
-echo "Updating sync metadata..."
+echo "Updating centralized sync metadata..."
 
-echo "$LAST_COMMIT" > .sync_last_commit
+SOURCE_REPO_NAME=$(basename $SOURCE_REPO)
 
-git add .sync_last_commit
+TMP_FILE=$(mktemp)
 
-git commit -m "update sync metadata"
+jq \
+  --arg repo "$SOURCE_REPO_NAME" \
+  --arg commit "$LAST_COMMIT" \
+  '.[$repo]=$commit' \
+  $GITHUB_WORKSPACE/sync-state/last-synced.json \
+  > $TMP_FILE
 
-echo "Pushing changes..."
+mv $TMP_FILE \
+  $GITHUB_WORKSPACE/sync-state/last-synced.json
+
+echo "Pushing target repo changes..."
 
 git push origin main
 
