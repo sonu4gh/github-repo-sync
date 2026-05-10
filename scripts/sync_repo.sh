@@ -38,22 +38,22 @@ git fetch source
 
 echo "Finding new commits..."
 
-SYNC_FILE=".sync_last_commit"
+SOURCE_REPO_NAME=$(basename $SOURCE_REPO)
 
-LAST_SYNCED=""
+echo "Reading sync metadata..."
 
-if [ -f "$SYNC_FILE" ]; then
-    LAST_SYNCED=$(cat $SYNC_FILE)
-    echo "Last synced commit: $LAST_SYNCED"
-else
-    echo "No sync metadata found"
-fi
+LAST_SYNCED=$(jq -r \
+  --arg repo "$SOURCE_REPO_NAME" \
+  '.[$repo] // empty' \
+  $GITHUB_WORKSPACE/sync-state/last-synced.json)
 
 if [ -z "$LAST_SYNCED" ]; then
+    echo "No previous sync found"
     echo "Performing initial full sync"
 
     COMMITS=$(git log source/main --reverse --pretty=format:"%H")
 else
+    echo "Last synced commit: $LAST_SYNCED"
     echo "Performing incremental sync"
 
     COMMITS=$(git log ${LAST_SYNCED}..source/main --reverse --pretty=format:"%H")
