@@ -67,8 +67,14 @@ do
     echo "----------------------------------------"
     echo "Cherry-picking commit: $COMMIT"
 
-    git cherry-pick --reset-author $COMMIT
-
+    git cherry-pick --no-commit $COMMIT
+    
+    COMMIT_MESSAGE=$(git log -1 --format=%B $COMMIT)
+    
+    git commit \
+      --author="${GIT_USER_NAME} <${GIT_USER_EMAIL}>" \
+      -m "$COMMIT_MESSAGE"
+    
     echo "Cherry-pick completed"
 done
 
