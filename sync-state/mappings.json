@@ -4,6 +4,7 @@
     "2nd-sync-test-repo"
   ],
   "new-test-sync-repo": [
-    "new-test-sync-repo"
+    "new-test-sync-repo",
+    "something-new"
   ]
 }
