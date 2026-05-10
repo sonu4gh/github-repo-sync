@@ -38,7 +38,16 @@ git fetch source
 
 echo "Finding new commits..."
 
-COMMITS=$(git log origin/main..source/main --reverse --pretty=format:"%H")
+if git show-ref --verify --quiet refs/remotes/origin/main
+then
+    echo "Target repo already has main branch"
+
+    COMMITS=$(git log origin/main..source/main --reverse --pretty=format:"%H")
+else
+    echo "Target repo is empty"
+
+    COMMITS=$(git log source/main --reverse --pretty=format:"%H")
+fi
 
 if [ -z "$COMMITS" ]; then
     echo "No new commits found."
