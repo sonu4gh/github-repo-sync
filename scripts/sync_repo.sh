@@ -19,7 +19,7 @@ echo "Checking latest source commit..."
 echo "========================================"
 
 LATEST_SOURCE_SHA=$(git ls-remote \
-  https://x-access-token:${GITHUB_TOKEN}@github.com/${SOURCE_REPO}.git \
+  https://github.com/${SOURCE_REPO}.git \
   refs/heads/main | awk '{print $1}')
 
 echo "Latest source SHA: $LATEST_SOURCE_SHA"
