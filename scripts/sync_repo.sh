@@ -19,13 +19,16 @@ cd $WORKDIR
 
 echo "Cloning target repo..."
 
-git clone https://x-access-token:${GITHUB_TOKEN}@github.com/${TARGET_REPO}.git target
+git clone \
+  https://x-access-token:${GITHUB_TOKEN}@github.com/${TARGET_REPO}.git \
+  target
 
 cd target
 
 echo "Adding source remote..."
 
-git remote add source https://x-access-token:${GITHUB_TOKEN}@github.com/${SOURCE_REPO}.git
+git remote add source \
+  https://x-access-token:${GITHUB_TOKEN}@github.com/${SOURCE_REPO}.git
 
 echo "Fetching origin..."
 
@@ -38,7 +41,9 @@ git fetch source
 SOURCE_REPO_NAME=$(basename $SOURCE_REPO)
 TARGET_REPO_NAME=$(basename $TARGET_REPO)
 
+echo "========================================"
 echo "Updating repo mappings..."
+echo "========================================"
 
 MAPPINGS_FILE="$GITHUB_WORKSPACE/sync-state/mappings.json"
 
@@ -73,7 +78,9 @@ if [ "$SOURCE_EXISTS" = "true" ]; then
         mv $TMP_FILE $MAPPINGS_FILE
 
     else
+
         echo "Target mapping already exists"
+
     fi
 
 else
@@ -93,11 +100,14 @@ else
 
 fi
 
+echo "========================================"
 echo "Finding new commits..."
+echo "========================================"
 
 LAST_SYNCED=$(jq -r \
   --arg repo "$SOURCE_REPO_NAME" \
-  '.[$repo] // empty' \
+  --arg target "$TARGET_REPO_NAME" \
+  '.[$repo][$target] // empty' \
   $GITHUB_WORKSPACE/sync-state/last-synced.json)
 
 if [ -z "$LAST_SYNCED" ]; then
@@ -117,14 +127,21 @@ else
 fi
 
 if [ -z "$COMMITS" ]; then
+
     echo "No new commits to sync"
     exit 0
+
 fi
 
+echo "========================================"
 echo "Commits to replay:"
+echo "========================================"
+
 echo "$COMMITS"
 
+echo "========================================"
 echo "Configuring git identity..."
+echo "========================================"
 
 git config user.name "$GIT_USER_NAME"
 git config user.email "$GIT_USER_EMAIL"
@@ -149,21 +166,26 @@ done
 
 LAST_COMMIT=$(echo "$COMMITS" | tail -n 1)
 
+echo "========================================"
 echo "Updating centralized sync metadata..."
+echo "========================================"
 
 TMP_FILE=$(mktemp)
 
 jq \
   --arg repo "$SOURCE_REPO_NAME" \
+  --arg target "$TARGET_REPO_NAME" \
   --arg commit "$LAST_COMMIT" \
-  '.[$repo]=$commit' \
+  '.[$repo][$target]=$commit' \
   $GITHUB_WORKSPACE/sync-state/last-synced.json \
   > $TMP_FILE
 
 mv $TMP_FILE \
   $GITHUB_WORKSPACE/sync-state/last-synced.json
 
+echo "========================================"
 echo "Pushing target repo changes..."
+echo "========================================"
 
 git push origin main
 
