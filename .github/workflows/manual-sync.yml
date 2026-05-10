@@ -43,3 +43,19 @@ jobs:
           scripts/sync_repo.sh \
           "${{ vars.ORG_NAME }}/${{ github.event.inputs.source_repo }}" \
           "${{ vars.USERNAME }}/${{ github.event.inputs.target_repo }}"
+
+      - name: Commit Sync State
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+          git add sync-state/
+
+          if git diff --cached --quiet
+          then
+            echo "No sync-state changes to commit"
+          else
+            git commit -m "update sync state"
+
+            git push
+          fi
