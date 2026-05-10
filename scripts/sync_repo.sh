@@ -38,20 +38,25 @@ git fetch source
 
 echo "Finding new commits..."
 
-if git show-ref --verify --quiet refs/remotes/origin/main
-then
-    echo "Target repo already has main branch"
+SYNC_FILE=".sync_last_commit"
 
-    COMMITS=$(git log origin/main..source/main --reverse --pretty=format:"%H")
+LAST_SYNCED=""
+
+if [ -f "$SYNC_FILE" ]; then
+    LAST_SYNCED=$(cat $SYNC_FILE)
+    echo "Last synced commit: $LAST_SYNCED"
 else
-    echo "Target repo is empty"
-
-    COMMITS=$(git log source/main --reverse --pretty=format:"%H")
+    echo "No sync metadata found"
 fi
 
-if [ -z "$COMMITS" ]; then
-    echo "No new commits found."
-    exit 0
+if [ -z "$LAST_SYNCED" ]; then
+    echo "Performing initial full sync"
+
+    COMMITS=$(git log source/main --reverse --pretty=format:"%H")
+else
+    echo "Performing incremental sync"
+
+    COMMITS=$(git log ${LAST_SYNCED}..source/main --reverse --pretty=format:"%H")
 fi
 
 echo "Commits to replay:"
@@ -77,6 +82,16 @@ do
     
     echo "Cherry-pick completed"
 done
+
+LAST_COMMIT=$(echo "$COMMITS" | tail -n 1)
+
+echo "Updating sync metadata..."
+
+echo "$LAST_COMMIT" > .sync_last_commit
+
+git add .sync_last_commit
+
+git commit -m "update sync metadata"
 
 echo "Pushing changes..."
 
