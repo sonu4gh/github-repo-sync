@@ -1,6 +1,9 @@
 {
   "sync-test-repo": {
-    "sync-test-repo": "2d3af8b8ba40650bc3584fdc773b92f42dd59ed0",
-    "2nd-sync-test-repo": "2d3af8b8ba40650bc3584fdc773b92f42dd59ed0"
+    "sync-test-repo": "90ce109e983e1370f87ed86050b417b8d742fd56",
+    "2nd-sync-test-repo": "90ce109e983e1370f87ed86050b417b8d742fd56"
+  },
+  "new-test-sync-repo": {
+    "new-test-sync-repo": "9982012d919052376f6ac2eea076812faac56d3c"
   }
 }
