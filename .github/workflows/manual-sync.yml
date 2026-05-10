@@ -1,0 +1,42 @@
+name: Manual Repo Sync
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_repo:
+        description: "Source repo name inside org"
+        required: true
+
+      target_repo:
+        description: "Target repo name inside target account"
+        required: true
+
+jobs:
+  sync-repo:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout automation repo
+        uses: actions/checkout@v4
+
+      - name: Make script executable
+        run: chmod +x scripts/sync_repo.sh
+
+      - name: Print Inputs
+        run: |
+          echo "ORG_NAME=${{ vars.ORG_NAME }}"
+          echo "USERNAME=${{ vars.USERNAME }}"
+          echo "SOURCE_REPO=${{ github.event.inputs.source_repo }}"
+          echo "TARGET_REPO=${{ github.event.inputs.target_repo }}"
+
+      - name: Run Repo Sync
+        env:
+          GITHUB_TOKEN: ${{ secrets.MAIN_GITHUB_TOKEN }}
+
+          GIT_USER_NAME: sonu4gh
+          GIT_USER_EMAIL: sji16865@gmail.com
+
+        run: |
+          scripts/sync_repo.sh \
+          "${{ vars.ORG_NAME }}/${{ github.event.inputs.source_repo }}" \
+          "${{ vars.USERNAME }}/${{ github.event.inputs.target_repo }}"
