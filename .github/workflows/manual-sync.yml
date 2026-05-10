@@ -1,5 +1,8 @@
 name: Manual Repo Sync
 
+permissions:
+  contents: write
+
 on:
   workflow_dispatch:
     inputs:
