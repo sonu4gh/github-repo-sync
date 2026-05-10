@@ -1,0 +1,139 @@
+name: Daily Org Sync
+
+permissions:
+  contents: write
+  issues: write
+
+on:
+  workflow_dispatch:
+
+  schedule:
+    - cron: "0 18 * * *"
+
+jobs:
+  sync-all-repos:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Automation Repo
+        uses: actions/checkout@v4
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Make script executable
+        run: chmod +x scripts/sync_repo.sh
+
+      - name: Fetch Org Repositories
+        env:
+          GITHUB_TOKEN: ${{ secrets.MAIN_GITHUB_TOKEN }}
+
+        run: |
+
+          echo "Fetching org repositories..."
+
+          curl -s \
+            -H "Authorization: token ${GITHUB_TOKEN}" \
+            "https://api.github.com/orgs/${{ vars.ORG_NAME }}/repos?per_page=200" \
+            > repos.json
+
+          cat repos.json | jq -r '.[].name' > repo-list.txt
+
+          echo "Repositories found:"
+          cat repo-list.txt
+
+      - name: Sync All Repositories
+        env:
+          GITHUB_TOKEN: ${{ secrets.MAIN_GITHUB_TOKEN }}
+
+          GIT_USER_NAME: sonu4gh
+          GIT_USER_EMAIL: sji16865@gmail.com
+
+        run: |
+
+          EXCLUDED_REPOS="${{ vars.EXCLUDED_REPOS }}"
+
+          for REPO in $(cat repo-list.txt)
+          do
+
+            echo "========================================"
+            echo "Processing repo: $REPO"
+            echo "========================================"
+
+            if echo "$EXCLUDED_REPOS" | tr ',' '\n' | grep -x "$REPO"
+            then
+                echo "Repo is excluded"
+                continue
+            fi
+
+            MAPPING_EXISTS=$(jq -r \
+              --arg repo "$REPO" \
+              'has($repo)' \
+              sync-state/mappings.json)
+
+            if [ "$MAPPING_EXISTS" = "true" ]; then
+
+                echo "Existing mapping found"
+
+                TARGETS=$(jq -r \
+                  --arg repo "$REPO" \
+                  '.[$repo][]' \
+                  sync-state/mappings.json)
+
+                for TARGET in $TARGETS
+                do
+
+                    echo "Syncing to mapped target: $TARGET"
+
+                    scripts/sync_repo.sh \
+                      "${{ vars.ORG_NAME }}/$REPO" \
+                      "${{ vars.USERNAME }}/$TARGET"
+
+                done
+
+            else
+
+                echo "No mapping found"
+                echo "Using default same-name target"
+
+                scripts/sync_repo.sh \
+                  "${{ vars.ORG_NAME }}/$REPO" \
+                  "${{ vars.USERNAME }}/$REPO"
+
+            fi
+
+          done
+
+      - name: Commit Sync State
+        run: |
+
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+          git add sync-state/
+
+          if git diff --cached --quiet
+          then
+            echo "No sync-state changes to commit"
+          else
+            git commit -m "update sync state"
+
+            git push
+          fi
+
+      - name: Create Issue On Failure
+        if: failure()
+
+        uses: actions/github-script@v7
+
+        with:
+          script: |
+
+            const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
+
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Daily sync failed - ${new Date().toISOString()}`,
+              body: `Workflow failed.\n\nRun URL: ${runUrl}`
+            })
